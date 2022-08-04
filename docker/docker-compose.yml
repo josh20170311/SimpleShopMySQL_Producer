@@ -1,0 +1,34 @@
+version: '2.1'
+services:
+  database:
+    image: simpleshop_mysql
+    container_name: database
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "passwd"
+    networks:
+      backend:
+        aliases:
+          - "database"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+  myapp:
+    image: shichoc/simpleshopmysql:0.0.1-SNAPSHOT
+    container_name: simpleshopapp
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://database:3306/simpleshop"
+      SPRING_DATASOURCE_PASSWORD: "passwd"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
