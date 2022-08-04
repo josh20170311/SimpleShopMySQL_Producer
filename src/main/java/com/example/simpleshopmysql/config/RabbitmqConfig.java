@@ -32,4 +32,9 @@ public class RabbitmqConfig {
 		return new Queue("tpu.queue");
 	}
 
+	@Bean
+	public Queue putProduct() {
+		return new Queue("put_product");
+	}
+
 }

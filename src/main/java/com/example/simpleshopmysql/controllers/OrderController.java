@@ -4,6 +4,7 @@ import com.example.simpleshopmysql.models.LineItem;
 import com.example.simpleshopmysql.models.MessageResponse;
 import com.example.simpleshopmysql.models.SaleOrder;
 import com.example.simpleshopmysql.services.OrderService;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,9 @@ import java.util.List;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @RequestMapping(value="/order",method = RequestMethod.GET)
     public ResponseEntity<List<SaleOrder>> getAllOrders() {
@@ -28,9 +32,16 @@ public class OrderController {
 
     @RequestMapping(value="/order",method = RequestMethod.POST)
     public ResponseEntity<SaleOrder> createOrders(@RequestBody SaleOrder saleOrder) {
+        rabbitTemplate.setReceiveTimeout(1000000L);
+        rabbitTemplate.setReplyTimeout(1000000L);
         try {
-            SaleOrder generatedOrder = orderService.createOrders(saleOrder);
-            return ResponseEntity.ok(generatedOrder);
+//            SaleOrder generatedOrder = orderService.createOrders(saleOrder);
+            SaleOrder generatedOrder = (SaleOrder) rabbitTemplate.convertSendAndReceive("put_order", saleOrder);
+            if(!generatedOrder.getEmail().equals("null"))
+                return ResponseEntity.ok(generatedOrder);
+            else{
+                return ResponseEntity.badRequest().build();
+            }
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
